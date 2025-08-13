@@ -41,10 +41,10 @@ RUN npm ci --omit=dev --no-audit --no-fund
 COPY . .
 
 # Create directories and set proper permissions BEFORE switching to node user
-RUN mkdir -p .wwebjs_auth .wwebjs_cache \
+RUN mkdir -p .wwebjs_auth .wwebjs_cache .wwebjs_auth/session \
     && chown -R node:node . \
     && chmod -R 755 . \
-    && chmod 777 .wwebjs_auth .wwebjs_cache \
+    && chmod -R 777 .wwebjs_auth .wwebjs_cache \
     && chmod +x start.sh
 
 # Switch to non-root user

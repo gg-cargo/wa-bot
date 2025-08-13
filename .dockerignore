@@ -4,12 +4,15 @@ npm-debug.log
 .gitignore
 README.md
 .env
-.nyc_output
-coverage
-.DS_Store
+.env.*
 *.log
+.DS_Store
+.vscode
+.idea
+*.swp
+*.swo
+*~
 .wwebjs_auth
 .wwebjs_cache
-tmp
 
 

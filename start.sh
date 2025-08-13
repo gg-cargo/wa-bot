@@ -14,9 +14,9 @@ export CHROME_PATH=${CHROME_PATH:-/usr/bin/chromium}
 
 # Ensure directories exist (they should already be created in Dockerfile)
 echo " Checking necessary directories..."
-if [ ! -d ".wwebjs_auth" ] || [ ! -d ".wwebjs_cache" ]; then
+if [ ! -d ".wwebjs_auth" ] || [ ! -d ".wwebjs_cache" ] || [ ! -d ".wwebjs_auth/session" ]; then
     echo "⚠️  Directories not found, creating them..."
-    mkdir -p .wwebjs_auth .wwebjs_cache
+    mkdir -p .wwebjs_auth .wwebjs_cache .wwebjs_auth/session
 fi
 
 # Check if Chromium is available
