@@ -40,11 +40,11 @@ RUN npm ci --omit=dev --no-audit --no-fund
 # Copy source code
 COPY . .
 
-# Make startup script executable and set permissions
-RUN chmod +x start.sh \
-    && mkdir -p .wwebjs_auth .wwebjs_cache \
+# Create directories and set proper permissions BEFORE switching to node user
+RUN mkdir -p .wwebjs_auth .wwebjs_cache \
     && chown -R node:node . \
-    && chmod -R 755 .
+    && chmod -R 755 . \
+    && chmod +x start.sh
 
 # Switch to non-root user
 USER node
@@ -59,5 +59,3 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # Use dumb-init for proper signal handling
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["./start.sh"]
-
-

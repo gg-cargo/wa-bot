@@ -12,8 +12,10 @@ export PUPPETEER_EXECUTABLE_PATH=${PUPPETEER_EXECUTABLE_PATH:-/usr/bin/chromium}
 export CHROME_BIN=${CHROME_BIN:-/usr/bin/chromium}
 export CHROME_PATH=${CHROME_PATH:-/usr/bin/chromium}
 
-# Create necessary directories (without changing /tmp permissions)
+# Create necessary directories with proper permissions
+echo "�� Creating necessary directories..."
 mkdir -p .wwebjs_auth .wwebjs_cache
+chmod 755 .wwebjs_auth .wwebjs_cache
 
 # Check if Chromium is available
 if [ ! -f "$PUPPETEER_EXECUTABLE_PATH" ]; then
