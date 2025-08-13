@@ -44,6 +44,7 @@ COPY . .
 RUN mkdir -p .wwebjs_auth .wwebjs_cache \
     && chown -R node:node . \
     && chmod -R 755 . \
+    && chmod 777 .wwebjs_auth .wwebjs_cache \
     && chmod +x start.sh
 
 # Switch to non-root user

@@ -12,10 +12,12 @@ export PUPPETEER_EXECUTABLE_PATH=${PUPPETEER_EXECUTABLE_PATH:-/usr/bin/chromium}
 export CHROME_BIN=${CHROME_BIN:-/usr/bin/chromium}
 export CHROME_PATH=${CHROME_PATH:-/usr/bin/chromium}
 
-# Create necessary directories with proper permissions
-echo "�� Creating necessary directories..."
-mkdir -p .wwebjs_auth .wwebjs_cache
-chmod 755 .wwebjs_auth .wwebjs_cache
+# Ensure directories exist (they should already be created in Dockerfile)
+echo " Checking necessary directories..."
+if [ ! -d ".wwebjs_auth" ] || [ ! -d ".wwebjs_cache" ]; then
+    echo "⚠️  Directories not found, creating them..."
+    mkdir -p .wwebjs_auth .wwebjs_cache
+fi
 
 # Check if Chromium is available
 if [ ! -f "$PUPPETEER_EXECUTABLE_PATH" ]; then
