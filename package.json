@@ -1,0 +1,37 @@
+{
+  "name": "whatsapp-helper",
+  "version": "1.0.0",
+  "description": "Helper untuk mengirim pesan WhatsApp menggunakan whatsapp-web.js",
+  "main": "wweb.js",
+  "scripts": {
+    "start": "node server.js",
+    "start:prod": "NODE_ENV=production node server.js",
+    "start:docker": "./start.sh",
+    "cli": "node wweb.js",
+    "example": "node example.js",
+    "build": "echo 'No build step required'",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "messaging",
+    "automation"
+  ],
+  "author": "GG Kargo",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.7.7",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "puppeteer": "^24.9.0",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.23.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
