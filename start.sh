@@ -3,6 +3,12 @@
 # Script startup untuk container wweb
 set -e
 
+# Fix permissions for volume bindings
+if [ -f "/usr/local/bin/fix-permissions.sh" ]; then
+    echo "🔧 Fixing permissions for volume bindings..."
+    /usr/local/bin/fix-permissions.sh
+fi
+
 echo "🚀 Starting wweb service..."
 
 # Set environment variables

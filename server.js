@@ -276,25 +276,96 @@ app.post('/cleanup', requireApiKey, async (req, res) => {
     const path = require('path');
     
     try {
-      // Hapus folder .wwebjs_auth dan .wwebjs_cache
+      // Hapus folder .wwebjs_auth dan .wwebjs_cache dengan retry mechanism
       const authPath = path.join(__dirname, '.wwebjs_auth');
       const cachePath = path.join(__dirname, '.wwebjs_cache');
       
-      if (fs.existsSync(authPath)) {
-        fs.rmSync(authPath, { recursive: true, force: true });
-        console.log('Folder .wwebjs_auth berhasil dihapus');
-      }
+      // Function untuk menghapus direktori dengan retry
+      const removeDirectoryWithRetry = (dirPath, dirName) => {
+        if (!fs.existsSync(dirPath)) {
+          console.log(`Folder ${dirName} tidak ada`);
+          return true;
+        }
+        
+        try {
+          // Coba hapus dengan force
+          fs.rmSync(dirPath, { recursive: true, force: true });
+          console.log(`Folder ${dirName} berhasil dihapus`);
+          return true;
+        } catch (error) {
+          if (error.code === 'EBUSY' || error.code === 'ENOTEMPTY') {
+            console.log(`Folder ${dirName} sedang digunakan, mencoba hapus file satu per satu...`);
+            
+            try {
+              // Hapus isi direktori satu per satu
+              const removeContents = (dir) => {
+                const items = fs.readdirSync(dir);
+                for (const item of items) {
+                  const itemPath = path.join(dir, item);
+                  const stat = fs.statSync(itemPath);
+                  
+                  if (stat.isDirectory()) {
+                    removeContents(itemPath);
+                    try {
+                      fs.rmdirSync(itemPath);
+                    } catch (e) {
+                      console.log(`Tidak bisa hapus subdirektori ${itemPath}: ${e.message}`);
+                    }
+                  } else {
+                    try {
+                      fs.unlinkSync(itemPath);
+                    } catch (e) {
+                      console.log(`Tidak bisa hapus file ${itemPath}: ${e.message}`);
+                    }
+                  }
+                }
+              };
+              
+              removeContents(dirPath);
+              
+              // Coba hapus direktori utama
+              try {
+                fs.rmdirSync(dirPath);
+                console.log(`Folder ${dirName} berhasil dihapus setelah cleanup manual`);
+                return true;
+              } catch (e) {
+                console.log(`Folder ${dirName} tidak bisa dihapus sepenuhnya: ${e.message}`);
+                return false;
+              }
+              
+            } catch (manualError) {
+              console.log(`Gagal cleanup manual untuk ${dirName}: ${manualError.message}`);
+              return false;
+            }
+          } else {
+            console.log(`Error saat hapus ${dirName}: ${error.message}`);
+            return false;
+          }
+        }
+      };
       
-      if (fs.existsSync(cachePath)) {
-        fs.rmSync(cachePath, { recursive: true, force: true });
-        console.log('Folder .wwebjs_cache berhasil dihapus');
-      }
+      // Hapus direktori dengan retry
+      const authRemoved = removeDirectoryWithRetry(authPath, '.wwebjs_auth');
+      const cacheRemoved = removeDirectoryWithRetry(cachePath, '.wwebjs_cache');
       
-      return res.json({ 
-        success: true, 
-        message: 'Folder session berhasil dibersihkan. Gunakan /force-init untuk restart WhatsApp client.',
-        cleanedFolders: ['.wwebjs_auth', '.wwebjs_cache']
-      });
+      const cleanedFolders = [];
+      if (authRemoved) cleanedFolders.push('.wwebjs_auth');
+      if (cacheRemoved) cleanedFolders.push('.wwebjs_cache');
+      
+      if (cleanedFolders.length > 0) {
+        return res.json({ 
+          success: true, 
+          message: 'Folder session berhasil dibersihkan. Gunakan /force-init untuk restart WhatsApp client.',
+          cleanedFolders: cleanedFolders,
+          warnings: cleanedFolders.length < 2 ? ['Beberapa folder tidak bisa dihapus sepenuhnya karena sedang digunakan'] : []
+        });
+      } else {
+        return res.status(500).json({ 
+          success: false, 
+          error: 'Tidak ada folder yang berhasil dibersihkan',
+          details: 'Semua folder sedang digunakan atau tidak bisa dihapus'
+        });
+      }
       
     } catch (cleanupError) {
       console.error('Error saat cleanup folder:', cleanupError);
@@ -307,6 +378,100 @@ app.post('/cleanup', requireApiKey, async (req, res) => {
     
   } catch (error) {
     console.error('Error saat cleanup:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Endpoint untuk force cleanup yang lebih agresif
+app.post('/force-cleanup', requireApiKey, async (req, res) => {
+  try {
+    console.log('Force cleanup folder session...');
+    
+    // Logout dulu jika sedang terautentikasi
+    const currentStatus = whatsappService.getConnectionStatus();
+    if (currentStatus.isReady) {
+      console.log('Force logout dari session...');
+      try {
+        await whatsappService.logout();
+      } catch (logoutError) {
+        console.log('Error saat logout, lanjutkan cleanup:', logoutError.message);
+      }
+    }
+    
+    // Tunggu lebih lama untuk memastikan semua resource dibebaskan
+    console.log('Menunggu resource dibebaskan...');
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    
+    // Bersihkan folder dengan cara yang lebih agresif
+    const fs = require('fs');
+    const path = require('path');
+    
+    const cleanupFolder = (folderPath, folderName) => {
+      if (!fs.existsSync(folderPath)) {
+        console.log(`Folder ${folderName} tidak ada`);
+        return true;
+      }
+      
+      try {
+        // Coba hapus dengan force
+        fs.rmSync(folderPath, { recursive: true, force: true });
+        console.log(`Folder ${folderName} berhasil dihapus`);
+        return true;
+      } catch (error) {
+        console.log(`Error saat hapus ${folderName}: ${error.message}`);
+        
+        // Jika masih error, coba hapus isi direktori
+        try {
+          const items = fs.readdirSync(folderPath);
+          for (const item of items) {
+            const itemPath = path.join(folderPath, item);
+            try {
+              const stat = fs.statSync(itemPath);
+              if (stat.isDirectory()) {
+                fs.rmSync(itemPath, { recursive: true, force: true });
+              } else {
+                fs.unlinkSync(itemPath);
+              }
+            } catch (e) {
+              console.log(`Tidak bisa hapus ${itemPath}: ${e.message}`);
+            }
+          }
+          
+          // Coba hapus direktori utama lagi
+          try {
+            fs.rmdirSync(folderPath);
+            console.log(`Folder ${folderName} berhasil dihapus setelah cleanup manual`);
+            return true;
+          } catch (e) {
+            console.log(`Folder ${folderName} tidak bisa dihapus sepenuhnya`);
+            return false;
+          }
+        } catch (manualError) {
+          console.log(`Gagal cleanup manual untuk ${folderName}`);
+          return false;
+        }
+      }
+    };
+    
+    const authPath = path.join(__dirname, '.wwebjs_auth');
+    const cachePath = path.join(__dirname, '.wwebjs_cache');
+    
+    const authCleaned = cleanupFolder(authPath, '.wwebjs_auth');
+    const cacheCleaned = cleanupFolder(cachePath, '.wwebjs_cache');
+    
+    const cleanedFolders = [];
+    if (authCleaned) cleanedFolders.push('.wwebjs_auth');
+    if (cacheCleaned) cleanedFolders.push('.wwebjs_cache');
+    
+    return res.json({
+      success: true,
+      message: 'Force cleanup selesai',
+      cleanedFolders: cleanedFolders,
+      note: 'Restart container jika folder masih tidak bisa dihapus sepenuhnya'
+    });
+    
+  } catch (error) {
+    console.error('Error saat force cleanup:', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 });

@@ -30,3 +30,4 @@ docker-compose ps
 
 echo "📋 Service logs:"
 docker-compose logs -f wweb-service
+

@@ -47,6 +47,17 @@ RUN mkdir -p .wwebjs_auth .wwebjs_cache .wwebjs_auth/session \
     && chmod -R 777 .wwebjs_auth .wwebjs_cache \
     && chmod +x start.sh
 
+# Create a script to fix permissions on startup
+RUN echo '#!/bin/bash\n\
+if [ -d "/usr/src/app/.wwebjs_auth" ]; then\n\
+    chmod -R 777 /usr/src/app/.wwebjs_auth\n\
+fi\n\
+if [ -d "/usr/src/app/.wwebjs_cache" ]; then\n\
+    chmod -R 777 /usr/src/app/.wwebjs_cache\n\
+fi\n\
+exec "$@"' > /usr/local/bin/fix-permissions.sh \
+    && chmod +x /usr/local/bin/fix-permissions.sh
+
 # Switch to non-root user
 USER node
 
